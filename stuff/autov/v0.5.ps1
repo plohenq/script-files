@@ -39,14 +39,10 @@ function Download-FileWithRetries {
 
     while (-not $success -and $attempt -lt $MaxRetries) {
         $attempt++
-        Write-Host "Tentativa $attempt de $MaxRetries para baixar o arquivo..."
-
         try {
             Invoke-WebRequest -Uri $Url -OutFile $Destination -ErrorAction Stop
             $success = $true
-            Write-Host "Download bem-sucedido!" -ForegroundColor Green
         } catch {
-            Write-Host "Falha ao baixar o arquivo. Tentando novamente..." -ForegroundColor Red
             Start-Sleep -Seconds 5 # Pausa antes da próxima tentativa
         }
     }
@@ -74,7 +70,6 @@ if (-not (Download-FileWithRetries -Url $officeSetupUrl -Destination $officeSetu
 # Verifica se o Chocolatey está instalado e instala caso necessário
 if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
     Write-Host "Instalando Chocolatey..." -ForegroundColor Yellow
-    Set-ExecutionPolicy Bypass -Scope Process -Force
     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 }
 
@@ -122,7 +117,9 @@ Write-Host "`nTodos os programas foram instalados com sucesso!"
 
 # LIMPEZA E RESTAURAÇÃO
 # Move os setups para a lixeira
-Write-Host "Removendo setups do diretório 'Instaladores'..." -ForegroundColor Yellow
+$shell = New-Object -ComObject Shell.Application
+$folder = $shell.Namespace(10) # Lixeira
+Get-ChildItem -Path $installerPath | ForEach-Object { $folder.CopyHere($_.FullName) }
 Remove-Item -Path $installerPath -Recurse -Force
 
 # Porra de Chocolatey
